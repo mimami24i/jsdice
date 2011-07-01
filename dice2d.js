@@ -15,14 +15,14 @@ midice2d.con = {
 
 /**
  * ダイスクラス。
- * @param {HTMLCanvasElement} canvas 表示対象canvas
+ * @param {HTMLElement} canvas 表示対象HTMLCanvasElement
  * @param {number} width 1辺の長さ。canvas.height / 2 を1とする値。
  * @constructor
  */
 midice2d.Dice = function(canvas, width) {
   /**
-   * 表示対象canvasのcontext
-   * @type {CanvasRenderingContext2D} 
+   * 表示対象canvasのcontext(CanvasRenderingContext2D)
+   * @type {Object} 
    * @private
    */
   this.context_ = canvas.getContext('2d');
@@ -73,13 +73,13 @@ midice2d.Dice = function(canvas, width) {
    * @type {number}
    * @private
    */
-  this.x_ = null;
+  this.x_ = 0;
   /**
    * 左上y座標(px)
    * @type {number}
    * @private
    */
-  this.y_ = null;
+  this.y_ = 0;
   /**
    * 1以外の目の丸の半径は、辺の長さの何倍か
    * @type {number}
@@ -88,8 +88,8 @@ midice2d.Dice = function(canvas, width) {
   this.eyeRadRate_ = 0.1;
    /**
    * 1の目の丸の半径は、1以外の目の丸の半径の何倍か
-   * @private
    * @type {number}
+   * @private
    */
   this.eye1RadRate_ = 1.5;
  /**
@@ -123,23 +123,23 @@ midice2d.Dice = function(canvas, width) {
    */
   this.eye1Rad_ = ~~(this.eyeRad_ * this.eye1RadRate_);
   /* 以下、表示用の値。詳細はmidice2d.Dice.prototype.calcDisp_参照 */
-  this.cvhalfh_ = null;
-  this.crStLen_ = null;
-  this.distCir_ = null;
-  this.outX0_ = null;
-  this.outX1_ = null;
-  this.outX2_ = null;
-  this.outX3_ = null;
-  this.outY0_ = null;
-  this.outY1_ = null;
-  this.outY2_ = null;
-  this.outY3_ = null;
-  this.eyeX1_ = null;
-  this.eyeX2_ = null;
-  this.eyeX3_ = null;
-  this.eyeY1_ = null;
-  this.eyeY2_ = null;
-  this.eyeY3_ = null;
+  this.cvhalfh_ = 0;
+  this.crStLen_ = 0;
+  this.distCir_ = 0;
+  this.outX0_ = 0;
+  this.outX1_ = 0;
+  this.outX2_ = 0;
+  this.outX3_ = 0;
+  this.outY0_ = 0;
+  this.outY1_ = 0;
+  this.outY2_ = 0;
+  this.outY3_ = 0;
+  this.eyeX1_ = 0;
+  this.eyeX2_ = 0;
+  this.eyeX3_ = 0;
+  this.eyeY1_ = 0;
+  this.eyeY2_ = 0;
+  this.eyeY3_ = 0;
 };
 /**
  * 表示用の値を計算
@@ -262,7 +262,7 @@ midice2d.Dice.prototype.draw = function(eyeval, x ,y, clrflg) {
  * @private
  */
 midice2d.Dice.prototype.draweye_ = function(pos) {
-  var cx, cy; // 中心座標
+  var cx = 0, cy = 0; // 中心座標
   switch (pos) {
     case 1: {
       cx = this.eyeX3_;

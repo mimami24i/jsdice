@@ -8,12 +8,15 @@
  */
 var mgbase = {};
 
-// mgbase.Gameのインスタンス
-mgbase.gmi;
+/**
+ * mgbase.Gameのインスタンス
+ * @type {?mgbase.Game}
+ */
+mgbase.gmi = null;
 
 /**
  * ゲーム実行クラス
- * @param {HTMLCanvasElement} canvas ゲーム表示先canvas
+ * @param {HTMLElement} canvas ゲーム表示先HTMLCanvasElement
  * @param {number} cvx ブラウザ上のCanvas左上x座標
  * @param {number} cvy ブラウザ上のCanvas左上y座標
  * @constructor
@@ -157,7 +160,7 @@ mgbase.Game.prototype.skip = function(skiptime) {
 
 /**
  * Canvas表示、表示対象Entity管理クラス
- * @param {HTMLCanvasElement} canvas ゲーム表示先canvas
+ * @param {HTMLElement} canvas ゲーム表示先HTMLCanvasElement
  * @constructor
  */
 mgbase.Canvas = function(canvas) {
@@ -193,6 +196,11 @@ mgbase.Canvas = function(canvas) {
    * @type {number}
    */
   this.eArrSeq_ = 0;
+  /**
+   * draw前にclearRectするか
+   * @type {boolean}
+   */
+  this.isclear = true;
 };
 /**
  * entity追加
@@ -234,7 +242,9 @@ mgbase.Canvas.prototype.delall = function() {
  * Canvasにentityを描画
  */
 mgbase.Canvas.prototype.draw = function() {
-  this.context_.clearRect(0, 0, this.cvwidth_, this.cvheight_);
+  if (this.isclear) {
+    this.context_.clearRect(0, 0, this.cvwidth_, this.cvheight_);
+  }
   for (var entity in this.eArr_) {
     this.eArr_[entity].draw(this.context_);
   }
@@ -248,27 +258,28 @@ mgbase.Entity = function() {
   /**
    * entity配列のindex
    * @private
-   * @type {number}
+   * @type {?number}
    */
   this.eArrIdx_ = null;
 };
 /**
  * entity配列のindex付加
- * @param {number} index 付加するindex
+ * @param {?number} index 付加するindex
  */
 mgbase.Entity.prototype.addidx = function(index) {
   this.eArrIdx_ = index;
 };
 /**
  * entity配列のindex取得
- * @return {number} entity配列のindex
+ * @return {?number} entity配列のindex
  */
 mgbase.Entity.prototype.getidx = function() {
   return this.eArrIdx_;
 };
 /**
  * entityの表示
- * @param {CanvasRenderingContext2D} context ゲーム表示先canvasのcontext
+ * @param {Object} context ゲーム表示先canvasのcontext
+ *    (CanvasRenderingContext2D)
  */
 mgbase.Entity.prototype.draw = function(context) {
 };

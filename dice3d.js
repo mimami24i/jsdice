@@ -19,7 +19,7 @@ midice3d.con = {
   rad1: Math.PI / 180 // 1°が何ラジアンか
 };
 
-/** @typedef {x: number, y: number z: number} */
+/** @typedef {{x: number, y: number, z: number}} */
 midice3d.Vector;
 /**
  * QuadFaceをコピー
@@ -41,9 +41,10 @@ midice3d.copyQF_ = function(qf) {
   }
   var cqf = new Pre3d.QuadFace(copiedArr[0], copiedArr[1], copiedArr[2],
       copiedArr[3]);
-  cqf.centroid = midice3d.copyVec_(qf.centroid);
-  cqf.normal1 = midice3d.copyVec_(qf.normal1);
-  cqf.normal2 = midice3d.copyVec_(qf.normal2);
+  cqf.centroid = (qf.centroid === null) ? null :
+      midice3d.copyVec_(qf.centroid);
+  cqf.normal1 = (qf.normal1 === null) ? null : midice3d.copyVec_(qf.normal1);
+  cqf.normal2 = (qf.normal2 === null) ? null : midice3d.copyVec_(qf.normal2);
   return cqf;
 };
 /**
@@ -66,18 +67,12 @@ midice3d.copyPath_ = function(pt) {
 };
 /**
  * Vectorをコピー
- * @param {?midice3d.Vector} vec コピー元Vector
+ * @param {midice3d.Vector} vec コピー元Vector
  * @return {midice3d.Vector} コピー結果
  * @private
  */
 midice3d.copyVec_ = function(vec) {
-  var rtn;
-  if (vec === null) {
-    rtn = null;
-  } else {
-    rtn = {x: vec.x, y: vec.y, z: vec.z};
-  }
-  return rtn;
+  return {x: vec.x, y: vec.y, z: vec.z};
 };
 /**
  * Pathの値に対してtransformを実行。rotateはrotateZ→rotateY→rotateXの順に回転
@@ -121,7 +116,7 @@ midice3d.transPath_ = function(path, type, tp) {
 /**
  * ダイスクラス。
  * 特記していない場合、長さの単位は canvas.height / 2 を1とする値。
- * @param {HTMLCanvasElement} canvas 表示対象canvas
+ * @param {HTMLElement} canvas 表示対象HTMLCanvasElement
  * @param {number} width 1辺の長さ
  * @constructor
  */
@@ -139,8 +134,8 @@ midice3d.Dice = function(canvas, width) {
    */
   this.hfwdth_ = this.width_ / 2;
   /**
-   * 表示対象canvas
-   * @type {HTMLCanvasElement} 
+   * 表示対象HTMLCanvasElement
+   * @type {HTMLElement} 
    * @private
    */
   this.canvas_ = canvas;
@@ -208,7 +203,7 @@ midice3d.Dice = function(canvas, width) {
    * @type {midice3d.Vector} 
    * @private
    */
-   this.lightVec_ = null;
+   this.lightVec_ = {x: 0, y: 0, z: 1};
   /**
    * ダイス表示バッファの配列。サイズはthis.camAngles_.length以下であること。
    * @type {Array.<midice3d.DBuffer_>} 
@@ -384,10 +379,10 @@ midice3d.Dice.prototype.makeBuf_ = function(renderer) {
   return drbuf;
 };
 /**
- * renderer.buffered_quads_のZ座標順ソート関数。
+ * Pre3d.Renderer.buffered_quads_のZ座標順ソート関数。
  * pre3d.js の zSorter()。
- * @param {Pre3d.Renderer.buffered_quads_} x 比較対象
- * @param {Pre3d.Renderer.buffered_quads_} y 比較対象
+ * @param {Object} x 比較対象
+ * @param {Object} y 比較対象
  * @return {number} x > y なら正, x == y なら0, それ以外は負
  * @private
  */
@@ -431,15 +426,15 @@ midice3d.Dice.prototype.makePBuf_ = function(path, renderer) {
   var screen_points = renderer.projectPointsToCanvas(tps);
   var pathbuf = midice3d.copyPath_(path);
   pathbuf.points = screen_points;
-  var start_point;
   if (path.starting_point === null) {
-    start_point = renderer.projectPointToCanvas(
+    var start_point = renderer.projectPointToCanvas(
         trans.transformPoint({x: 0, y: 0, z: 0}));
+    var spidx = pathbuf.points.length;
+    pathbuf.points[spidx] = start_point;
+    pathbuf.starting_point = spidx;
   } else {
-    start_point = {x: screen_points[path.starting_point].x,
-        y: screen_points[path.starting_point].y};
+    pathbuf.starting_point = path.starting_point;
   }
-  pathbuf.starting_point = start_point;
 
   // 座標を整数化
   for (var i = 0; i < pathbuf.points.length; i++) {
@@ -447,9 +442,6 @@ midice3d.Dice.prototype.makePBuf_ = function(path, renderer) {
     pathbuf.points[i].y = ~~pathbuf.points[i].y;
     pathbuf.points[i].z = ~~pathbuf.points[i].z;
   }
-  pathbuf.starting_point.x = ~~pathbuf.starting_point.x;
-  pathbuf.starting_point.y = ~~pathbuf.starting_point.y;
-  pathbuf.starting_point.z = ~~pathbuf.starting_point.z;
   return pathbuf;
 };
 
@@ -532,7 +524,7 @@ midice3d.Dice.prototype.draw = function(bufidx, upeyeval, x, y, clrflg) {
   }
 
   // 目を描く
-  var eyePath, key;
+  var eyePath, key, startpt;
   // 1の目のindexを1つの文字列にまとめる
   var eye1idxstr = '#' + dicebuf.eye1idxArr[upeyeval - 1].join('#') + '#';
   for (var i = 0, il = dicebuf.eyePathArr[upeyeval - 1].length; i < il; i++) {
@@ -546,7 +538,8 @@ midice3d.Dice.prototype.draw = function(bufidx, upeyeval, x, y, clrflg) {
     }
     // pathを描く
     ctx.beginPath();
-    ctx.moveTo(eyePath.starting_point.x, eyePath.starting_point.y);
+    startpt = eyePath.starting_point;
+    ctx.moveTo(eyePath.points[startpt].x, eyePath.points[startpt].y);
     var curves = eyePath.curves;
     for (var j = 0; j < curves.length; j++) {
       var curve = curves[j];

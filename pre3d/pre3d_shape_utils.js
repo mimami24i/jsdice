@@ -576,7 +576,7 @@ Pre3d.ShapeUtils = (function() {
       var ni = [
         [i0, i1].sort(),
         [i1, i2].sort(),
-        [i2, i0].sort(),
+        [i2, i0].sort()
       ];
 
       for (var j = 0, jl = ni.length; j < jl; ++j) {
