@@ -181,9 +181,8 @@ midice3d.Dice = function(canvas, width) {
   /**
    * カメラのfocal_length
    * @type {number} 
-   * @private
    */
-   this.camFocLen_ = 1;
+   this.camFocLen = 1;
   /**
    * 明るさのコントラスト。0以上1以下の値を設定。
    * 値が小さいほどコントラストが大きい。
@@ -223,7 +222,7 @@ midice3d.Dice = function(canvas, width) {
 midice3d.Dice.prototype.init = function() {
   // Rendererオブジェクト生成
   var renderer = new Pre3d.Renderer(this.canvas_);
-  renderer.camera.focal_length = this.camFocLen_;
+  renderer.camera.focal_length = this.camFocLen;
   renderer.fill_rgba = new Pre3d.RGBA(1, 1, 1, 1);  // white
 
   // 光源方向ベクトル作成

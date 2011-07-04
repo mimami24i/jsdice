@@ -48,6 +48,7 @@ ccrmain.con = {
     sp: '一時停止',
     bfix: '&nbsp;賭金固定&nbsp;',
     bunfix: '&nbsp;固定解除&nbsp;',
+    stmsg: 'スタートを押してください',
     betmsg: '賭金を指定してください',
     bfixmsg: '賭金固定中',
     end: '終了',
@@ -73,6 +74,7 @@ ccrmain.con = {
     updiceY: 0.6, // 上ダイス中心のY座標
     dwdiceY: 1.4, // 下ダイス中心のY座標
     sepdiceX: 0.55,  // 左右ダイス中心の、中央ダイス中心からの距離
+    scwidth: 130, // スコア表示divのwidth
     stfntsz: 20,  // スタートのフォントサイズ
     spfntsz: 14 // 一時停止のフォントサイズ
   },
@@ -84,7 +86,6 @@ ccrmain.dice2dins = null; // 2Dダイスインスタンス
 ccrmain.dice3dins = null; // 3Dダイスインスタンス
 ccrmain.game = null; // ゲーム実行インスタンス
 ccrmain.act = null; // アクションインスタンス
-ccrmain.canvas = null; // 表示対象canvas
 
 /**
  * アクションクラス
@@ -306,13 +307,13 @@ ccrmain.Action_ = function() {
    * @type {boolean}
    * @private
    */
-  this.resbet = false;
+  this.resbet_ = false;
   /**
    * スコア表示完了後の時間間隔(フレーム数)。
    * @type {number}
    * @private
    */
-  this.scafskip = 0;
+  this.scafskip_ = 0;
 
   /**
    * チンチロリン出目管理クラス
@@ -332,8 +333,9 @@ ccrmain.Action_.prototype.init = function() {
   
   /* 各種座標を求める */
   // 各プレイヤーのダイス中心,文字列ベースラインのY座標
-  var cvhf = ccrmain.canvas.height / 2;
-  var height = (ccrmain.canvas.height - 2 * ccrmain.con.num.marginY ) /
+  var cvinfo = ccrmain.game.gmcvs.getcontext();
+  var cvhf = cvinfo.cvheight / 2;
+  var height = (cvinfo.cvheight - 2 * ccrmain.con.num.marginY ) /
       this.playnum_;
   var dicewidth = cvhf * ccrmain.con.num.dice2Dsz;
   // ダイス中心から文字列ベースラインまでの距離
@@ -344,7 +346,8 @@ ccrmain.Action_.prototype.init = function() {
     this.diceY_[i] = this.diceYpx_[i] / cvhf;
   }
   // canvasの横幅の半分
-  this.cvwhf_ = ccrmain.canvas.width / 2 / cvhf;
+  var cvwhf = cvinfo.cvwidth / 2;
+  this.cvwhf_ = cvwhf / cvhf;
   // 左右ダイス中心の、中央ダイス中心からの距離
   this.sepdiceXpx_ = ~~(dicewidth * 1.5);
   this.sepdiceX_ = this.sepdiceXpx_ / cvhf;
@@ -363,14 +366,14 @@ ccrmain.Action_.prototype.init = function() {
     this.diceClrec_[i] = {x: diClrecX, y: clrecY, w: diClrecW, h: diClrecH};
   }
   // 親文字列中心のX座標(px)
-  this.parentXpx_ = ~~(ccrmain.canvas.width / 2 - this.sepdiceXpx_ * 2);
+  this.parentXpx_ = ~~(cvwhf - this.sepdiceXpx_ * 2);
   // 最初の親マーク関連
   this.iparentXpx_ = ~~(this.parentXpx_ - this.cvftsz / 2);
   this.iparentrad_ = ~~(this.cvftsz / 4);
   // 出目文字列中心のX座標(px)
-  this.dispstrXpx_ = ~~(ccrmain.canvas.width / 2);
+  this.dispstrXpx_ = ~~cvwhf;
   // 出目中心のX座標(px)
-  this.playvalXpx_ = ~~(ccrmain.canvas.width / 2 + this.sepdiceXpx_ * 2);
+  this.playvalXpx_ = ~~(cvwhf + this.sepdiceXpx_ * 2);
   // 各プレイヤーの親文字列,出目描画前clearRect設定値
   var mcvftsz = ~~(1.1 * this.cvftsz);  // 余裕を持たせたフォントサイズ
   var prClrecX = this.iparentXpx_ - this.iparentrad_ - 1;
@@ -415,6 +418,7 @@ ccrmain.Action_.prototype.reset = function() {
   for (var i = 0; i < this.playnum_; i++) {
     if (this.score_[i]) {
       this.score_[i].sc = this.scini_;
+      $('#' + this.score_[i].id).css('width', ccrmain.con.num.scwidth);
     } else {
       this.score_[i] = {id: null, sc: this.scini_};
     }
@@ -423,7 +427,7 @@ ccrmain.Action_.prototype.reset = function() {
   this.betval[this.youidx] = 0;
   // 賭金関連リセット
   this.betfixed = false;
-  this.resbet = false;
+  this.resbet_ = false;
   var $betinp = $('#' + ccrmain.con.id.betinp);
   $betinp.val(this.betdef_);
   this.dispslider(this.betdef_);
@@ -442,9 +446,6 @@ ccrmain.Action_.prototype.reset = function() {
   $sbtn.css('fontSize', ccrmain.con.num.stfntsz);
   $sbtn.attr('disabled', false);
   $('#' + ccrmain.con.id.msgdiv).css('display', 'none');
-  var $bmsgdiv = $('#' + ccrmain.con.id.bmsgdiv);
-  $bmsgdiv.text(ccrmain.con.str.betmsg);
-  $bmsgdiv.css('display', 'none');
   for (i = 0; i < this.playnum_; i++) {
      $('#' + ccrmain.con.id.rankdivpre + i).css('display', 'none');
   }
@@ -455,6 +456,11 @@ ccrmain.Action_.prototype.reset = function() {
   $bfbtn.html(ccrmain.con.str.bfix);
   $bfbtn.css('color', ccrmain.con.col.btn1);
   $bfbtn.attr('disabled', true);
+  // スタートボタンを押してください表示
+  var $bmsgdiv = $('#' + ccrmain.con.id.bmsgdiv);
+  $bmsgdiv.text(ccrmain.con.str.stmsg);
+  $bmsgdiv.css('display', 'block');
+  
 };
 /**
  * 再描画
@@ -507,7 +513,7 @@ ccrmain.Action_.prototype.draw = function(context) {
     return;
   }
   // 念のため、スコア表示完了後の時間間隔初期化
-  this.scafskip = 0;
+  this.scafskip_ = 0;
 
   // スコア表示後で、回転中でないなら、ダイス再描画
   // (出目文字列を消すため)
@@ -655,7 +661,7 @@ ccrmain.Action_.prototype.draw = function(context) {
   }
   
   // サイコロの目を求める
-  this.resbet = false;
+  this.resbet_ = false;
   var strtn = this.ccrorin_.shoot();
   this.playeyeval_[this.rollingidx_] =
       this.ccrorin_.playeyeval[this.rollingidx_].concat([]);
@@ -688,15 +694,15 @@ ccrmain.Action_.prototype.draw = function(context) {
     // 親の値は使用しないためクリア
     this.ccrorin_.scchgval[this.parentidx_] = 0;
     // スコア表示完了後の値設定
-    this.scafskip = this.ccrorin_.skiptime + strtn.skiptime;
-    this.resbet = strtn.resbet;
+    this.scafskip_ = this.ccrorin_.skiptime + strtn.skiptime;
+    this.resbet_ = strtn.resbet;
   } else {
     // しばらく更新をスキップする
     ccrmain.game.skip(this.ccrorin_.skiptime + strtn.skiptime);
     if (strtn.resbet) {
       // 賭金がスコアを超えていないかチェック
       this.isbetoversc_();
-      this.resbet = false;
+      this.resbet_ = false;
     }
   }
 };
@@ -786,14 +792,14 @@ ccrmain.Action_.prototype.dispscore_ = function() {
     if (allzero) {
       // 初期化
       this.ccrorin_.scchgval = [];
-      if (this.resbet) {
+      if (this.resbet_) {
         // 賭金がスコアを超えていないかチェック
         this.isbetoversc_();
-        this.resbet = false;
+        this.resbet_ = false;
       }
       // スコア表示完了後の時間間隔だけスキップ
-      ccrmain.game.skip(this.scafskip);
-      this.scafskip = 0;
+      ccrmain.game.skip(this.scafskip_);
+      this.scafskip_ = 0;
     } else {
       this.ccrorin_.scchgval = scchgval.concat([]);
       // スコア表示間隔だけスキップ
@@ -805,6 +811,9 @@ ccrmain.Action_.prototype.dispscore_ = function() {
   for (var i = 0; i < this.playnum_; i++) {
     $scdiv = $('#' + this.score_[i].id);
     $scdiv.text(this.score_[i].sc);
+    if (this.score_[i].sc <= -100000) {
+      $scdiv.css('width','auto');
+    }
   }
 };
 /**
@@ -841,8 +850,8 @@ ccrmain.Action_.prototype.dispslider = function(betval) {
  * @return {?string} エラーメッセージ。正常の場合はnull
  */
 ccrmain.Action_.prototype.chkbetval = function(betval) {
-  betval = parseInt(betval, 10);
   var rtn = null;
+  betval = parseInt(betval, 10);
   if (isNaN(betval)) {
     return '数値を入力してください';
   }
@@ -942,6 +951,7 @@ ccrmain.doact_ = function() {
   
     $sbtn.text(ccrmain.con.str.sp);
     $sbtn.css('fontSize', ccrmain.con.num.spfntsz);
+    $('#' + ccrmain.con.id.bmsgdiv).css('display', 'none');
     ccrmain.game.start();
   }
 };
@@ -957,8 +967,8 @@ ccrmain.reset_ = function() {
 
   ccrmain.act.reset();
   // 再描画
-  var gmcv = ccrmain.game.canvas;
-  ccrmain.act.drawAll(gmcv.context_, gmcv.cvwidth_, gmcv.cvheight_);
+  var cvinfo = ccrmain.game.gmcvs.getcontext();
+  ccrmain.act.drawAll(cvinfo.context, cvinfo.cvwidth, cvinfo.cvheight);
   // スライダーのつまみ関連イベント削除
   ccrmain.betslideReset_();
 
@@ -971,7 +981,14 @@ ccrmain.reset_ = function() {
  */
 ccrmain.bet_ = function() {
   var $betinp = $('#' + ccrmain.con.id.betinp);
-  var betval = parseInt($betinp.val(), 10);
+  var betval = $betinp.val();
+  if (typeof betval == 'string') {
+    // 全角数字を半角数字に変換
+    betval = betval.replace(/([０-９])/g, function($0) {
+          return String.fromCharCode($0.charCodeAt(0) - 65248);
+        });
+  }
+  betval = parseInt(betval, 10);
   // 賭金チェック
   var rtn = ccrmain.act.chkbetval(betval);
   if (rtn) {
@@ -1030,7 +1047,14 @@ ccrmain.betfix_ = function() {
     $bmsgdiv.css('display', 'none');
   } else {
     // 賭金チェック
-    var betval = parseInt($('#' + ccrmain.con.id.betinp).val(), 10);
+    var betval = $('#' + ccrmain.con.id.betinp).val();
+    if (typeof betval == 'string') {
+      // 全角数字を半角数字に変換
+      betval = betval.replace(/([０-９])/g, function($0) {
+            return String.fromCharCode($0.charCodeAt(0) - 65248);
+          });
+    }
+    betval = parseInt(betval, 10);
     var rtn = ccrmain.act.chkbetval(betval);
     if (rtn) {
       window.alert(rtn);
@@ -1121,38 +1145,34 @@ ccrmain.betslideReset_ = function() {
 //$(document).ready(function() {
 $(window).load(function() {
   // HTMLCanvasElementを取得して、ゲーム実行インスタンス生成
-  ccrmain.canvas = document.getElementById(ccrmain.con.id.cv);
-  if ( ! ccrmain.canvas || ! ccrmain.canvas.getContext ) {
+  var canvas = document.getElementById(ccrmain.con.id.cv);
+  if ( ! canvas || ! canvas.getContext ) {
    return false;
   }
-  ccrmain.cvhfheight = ccrmain.canvas.height / 2;
+  var cvhfheight = canvas.height / 2;
   var $cv = $('#' + ccrmain.con.id.cv);
   var cvoffset = $cv.offset();
   var cvx = cvoffset.left;
   var cvy = cvoffset.top;
   var fps = 12;
-  ccrmain.game = new mgbase.Game(ccrmain.canvas, cvx, cvy);
+  ccrmain.game = new mgbase.Game(canvas, cvx, cvy);
   ccrmain.game.setfps(fps);
   // contextのテキスト設定
-  var cvftsz = ~~(ccrmain.con.num.dice2Dsz * ccrmain.cvhfheight);
-  ccrmain.game.canvas.context_.textAlign = 'center';
-  ccrmain.game.canvas.context_.textBaseline = 'alphabetic';
-  ccrmain.game.canvas.context_.font = 'bold ' + cvftsz + 'px ' +
-      ccrmain.con.font;
+  var cvftsz = ~~(ccrmain.con.num.dice2Dsz * cvhfheight);
+  ccrmain.game.gmcvs.setTextInfo('bold ' + cvftsz + 'px ' + ccrmain.con.font,
+      'center', 'alphabetic');
   // draw前にclearRectしない設定
-  ccrmain.game.canvas.isclear = false;
+  ccrmain.game.gmcvs.isclear = false;
 
   // ダイスインスタンス生成
-  ccrmain.dice2dins = new midice2d.Dice(ccrmain.canvas,
-      ccrmain.con.num.dice2Dsz);
-  ccrmain.dice3dins = new midice3d.Dice(ccrmain.canvas,
-      ccrmain.con.num.dice3Dsz);
-  ccrmain.dice3dins.camFocLen_ = ccrmain.con.num.dice3Dfl;
+  ccrmain.dice2dins = new midice2d.Dice(canvas, ccrmain.con.num.dice2Dsz);
+  ccrmain.dice3dins = new midice3d.Dice(canvas, ccrmain.con.num.dice3Dsz);
+  ccrmain.dice3dins.camFocLen = ccrmain.con.num.dice3Dfl;
   ccrmain.dice3dins.init();
 
   // アクションインスタンス生成
   ccrmain.act = new ccrmain.Action_();
-  ccrmain.game.canvas.push(ccrmain.act);
+  ccrmain.game.gmcvs.push(ccrmain.act);
   $('#' + ccrmain.con.id.ldmsg).remove(); // ロード中メッセージ削除
   ccrmain.act.cvftsz = cvftsz;
   ccrmain.act.init();
@@ -1163,9 +1183,9 @@ $(window).load(function() {
   var $scwrapdiv = $('#' + ccrmain.con.id.scwrapdiv);
   var $scdiv;
   var scids = [];
-  var lineheight = ~~(ccrmain.con.num.dice2Dsz * ccrmain.cvhfheight);
+  var lineheight = ~~(ccrmain.con.num.dice2Dsz * cvhfheight);
   var divheight = ~~(lineheight * 1.1);
-  var divmrtop = ~~((ccrmain.canvas.height - 2 * marginY) /
+  var divmrtop = ~~((canvas.height - 2 * marginY) /
       ccrmain.act.playnum_) - divheight;
   var fontsize = ~~(lineheight * 0.8);
   $scwrapdiv.css('top', ~~(marginY + divmrtop / 2) + 'px');
@@ -1174,6 +1194,7 @@ $(window).load(function() {
     scids[i] = ccrmain.con.id.scdivpre + i;
     $scdiv.addClass(ccrmain.con.clsname.scdiv).attr('id', scids[i]).
         css('fontSize', fontsize + 'px').css('lineHeight',lineheight + 'px').
+        css('width', ccrmain.con.num.scwidth + 'px').
         css('height', divheight + 'px');
     if (i > 0) {
       $scdiv.css('marginTop', divmrtop + 'px');
@@ -1186,7 +1207,6 @@ $(window).load(function() {
   var $rankdiv, rdivtop;
   for (var i = 0; i < ccrmain.act.playnum_; i++) {
     $rankdiv = $('<div/>');
-    scids[i] = ccrmain.con.id.scdivpre + i;
     $rankdiv.addClass(ccrmain.con.clsname.rankdiv).
         attr('id', ccrmain.con.id.rankdivpre + i).
         css('color', ccrmain.con.col.str5);
@@ -1216,8 +1236,8 @@ $(window).load(function() {
   $rotsel.attr('disabled', false);
 
   // 初期画面表示
-  var gmcv = ccrmain.game.canvas;
-  ccrmain.act.drawAll(gmcv.context_, gmcv.cvwidth_, gmcv.cvheight_);
+  var cvinfo = ccrmain.game.gmcvs.getcontext();
+  ccrmain.act.drawAll(cvinfo.context, cvinfo.cvwidth, cvinfo.cvheight);
 
   // イベント付与
   $('#' + ccrmain.con.id.sbtn).click(ccrmain.doact_);

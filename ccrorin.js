@@ -19,7 +19,6 @@ ccrorin.con = {
     sdwin: '即勝ち',
     sdlose: '即負け',
     noeye: '目無し',
-    payall: '総付け',
     dubget: '倍取り',
     dublose: '倍付け',
     arashi: 'アラシ'
@@ -61,7 +60,6 @@ ccrorin.Ccrorin = function(playnum, dicenum) {
   /**
    * 最初の親のindex。一番上を0とする
    * @type {number}
-   * @private
    */
   this.parentidx0 = 0;
   /**
@@ -95,13 +93,11 @@ ccrorin.Ccrorin = function(playnum, dicenum) {
   /**
    * 各プレイヤーのダイスの目
    * @type {Array.<Array.<number>>}
-   * @private
    */
   this.playeyeval = [];
   /**
    * 各プレイヤーの出目
    * @type {Array.<number|string>}
-   * @private
    */
   this.playval = [];
   /**
@@ -132,7 +128,6 @@ ccrorin.Ccrorin = function(playnum, dicenum) {
   /**
    * スコア表示の時間間隔(フレーム数)。
    * @type {number}
-   * @private
    */
   this.scskip = 2;
 };
@@ -183,11 +178,11 @@ ccrorin.Ccrorin.prototype.shoot = function() {
 
   // 続行判定
   this.chalcounter_--;
+  this.scchgval = [];
   if (isparent) {
     if (dicescore.sudden) {
       // 即勝ち/即負け
       // スコア変動値設定
-      this.scchgval = [];
       for (var i = 0; i < this.playnum_; i++) {
         if (i == this.parentidx) {
           this.scchgval[i] = dicescore.score * (this.playnum_ - 1);
@@ -211,7 +206,6 @@ ccrorin.Ccrorin.prototype.shoot = function() {
     } else if (this.chalcounter_ <= 0) {
       // 目無し。総付けして親交代
       // スコア変動値設定
-      this.scchgval = [];
       for (var i = 0; i < this.playnum_; i++) {
         if (i == this.parentidx) {
           this.scchgval[i] = -1 * (this.playnum_ - 1);

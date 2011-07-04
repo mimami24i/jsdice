@@ -23,43 +23,35 @@ mgbase.gmi = null;
  */
 mgbase.Game = function(canvas, cvx, cvy) {
   /**
-   * ゲーム表示先canvas
+   * Canvas表示、表示対象Entity管理クラス
    * @type {mgbase.Canvas}
    */
-  this.canvas = new mgbase.Canvas(canvas);
+  this.gmcvs = new mgbase.Canvas(canvas);
   /**
    * ブラウザ上のCanvas左上x座標
    * 整数を設定することを推奨
    * @type {number}
    */
-  this.cvx = ~~cvx;
+  this.cvx_ = ~~cvx;
   /**
    * ブラウザ上のCanvas左上y座標
    * 整数を設定することを推奨
    * @type {number}
+   * @private
    */
-  this.cvy = ~~cvy;
-  /**
-   * canvasの幅(pixel)
-   * @type {number}
-   */
-  this.cvwidth = ~~canvas.width;
-  /**
-   * canvasの高さ(pixel)
-   * @type {number}
-   */
-  this.cvheight = ~~canvas.height;
+  this.cvy_ = ~~cvy;
   /**
    * 1秒あたりのフレーム数
    * @type {number}
+   * @private
    */
-  this.fps = 24;
+  this.fps_ = 24;
   /**
    * フレーム表示間隔(ミリ秒)
-   * @private
    * @type {number}
+   * @private
    */
-  this.mspf_ = 1000 / this.fps;;
+  this.mspf_ = 1000 / this.fps_;;
   /**
    * タイマー用ID
    * @private
@@ -87,8 +79,8 @@ mgbase.Game.prototype.setfps = function(fps) {
   if (isNaN(fps) || fps < 1) {
     return false;
   }
-  this.fps = ~~fps;
-  this.mspf_ = 1000 / this.fps;
+  this.fps_ = ~~fps;
+  this.mspf_ = 1000 / this.fps_;
   return true;
 };
 /**
@@ -141,7 +133,7 @@ mgbase.Game.prototype.update_ = function() {
       this.isskip_ = false;
     }
   } else {
-    this.canvas.draw();
+    this.gmcvs.draw();
   }
 };
 /**
@@ -157,7 +149,6 @@ mgbase.Game.prototype.skip = function(skiptime) {
   this.isskip_ = true;
 };
 
-
 /**
  * Canvas表示、表示対象Entity管理クラス
  * @param {HTMLElement} canvas ゲーム表示先HTMLCanvasElement
@@ -166,6 +157,7 @@ mgbase.Game.prototype.skip = function(skiptime) {
 mgbase.Canvas = function(canvas) {
   /**
    * canvas 2d context
+   * @type {?CanvasRenderingContext2D}
    * @private
    */
   this.context_ = null;
@@ -174,14 +166,14 @@ mgbase.Canvas = function(canvas) {
   }
   /**
    * canvasの幅(pixel)
-   * @private
    * @type {number}
+   * @private
    */
   this.cvwidth_ = ~~canvas.width;
   /**
    * canvasの高さ(pixel)
-   * @private
    * @type {number}
+   * @private
    */
   this.cvheight_ = ~~canvas.height;
   /**
@@ -249,6 +241,35 @@ mgbase.Canvas.prototype.draw = function() {
     this.eArr_[entity].draw(this.context_);
   }
 };
+/**
+ * Canvasのcontextを取得
+ * @return {{context: CanvasRenderingContext2D, cvwidth: number,
+ *    cvheight: number}}
+ * context: Canvasのcontext
+ * cvwidth: Canvasのwidth(px)
+ * cvheight: Canvasのheight(px)
+ */
+mgbase.Canvas.prototype.getcontext = function() {
+  return {context: this.context_, cvwidth: this.cvwidth_,
+      cvheight: this.cvheight_};
+};
+/**
+ * contextのテキスト設定。paramがnullの場合は変更しない。
+ * @param {?string} font context.font に設定する値
+ * @param {?string} textAlign context.textAlign に設定する値
+ * @param {?string} textBaseline context.textBaseline に設定する値
+ */
+mgbase.Canvas.prototype.setTextInfo = function(font, textAlign, textBaseline) {
+  if (font) {
+    this.context_.font = font;
+  }
+  if (textAlign) {
+    this.context_.textAlign = textAlign;
+  }
+  if (textBaseline) {
+    this.context_.textBaseline = textBaseline;
+  }
+};
 
 /**
  * 表示対象Entityクラス
@@ -278,8 +299,7 @@ mgbase.Entity.prototype.getidx = function() {
 };
 /**
  * entityの表示
- * @param {Object} context ゲーム表示先canvasのcontext
- *    (CanvasRenderingContext2D)
+ * @param {CanvasRenderingContext2D} context ゲーム表示先canvasのcontext
  */
 mgbase.Entity.prototype.draw = function(context) {
 };
